@@ -1,0 +1,25 @@
+{
+  "log": {"loglevel": "warning"},
+  "inbounds": [
+    {"port": 1080, "listen": "127.0.0.1", "protocol": "socks", "settings": {"auth": "noauth", "udp": false}, "tag": "socks-0"},
+    {"port": 1081, "listen": "127.0.0.1", "protocol": "socks", "settings": {"auth": "noauth", "udp": false}, "tag": "socks-1"},
+    {"port": 1082, "listen": "127.0.0.1", "protocol": "socks", "settings": {"auth": "noauth", "udp": false}, "tag": "socks-2"},
+    {"port": 1083, "listen": "127.0.0.1", "protocol": "socks", "settings": {"auth": "noauth", "udp": false}, "tag": "socks-3"}
+  ],
+  "outbounds": [
+    {"protocol": "vmess", "tag": "vmess-0", "settings": {"vnext": [{"address": "YOUR_VMESS_SERVER", "port": 80, "users": [{"id": "YOUR_VMESS_UUID", "security": "auto", "alterId": 0}]}]}, "streamSettings": {"network": "ws", "wsSettings": {"path": "/tw5gamesdk"}}},
+    {"protocol": "vmess", "tag": "vmess-1", "settings": {"vnext": [{"address": "YOUR_VMESS_SERVER", "port": 63139, "users": [{"id": "YOUR_VMESS_UUID", "security": "auto", "alterId": 0}]}]}, "streamSettings": {"network": "ws", "wsSettings": {"path": "/hkgamesdk"}}},
+    {"protocol": "vmess", "tag": "vmess-2", "settings": {"vnext": [{"address": "YOUR_VMESS_SERVER", "port": 59125, "users": [{"id": "YOUR_VMESS_UUID", "security": "auto", "alterId": 0}]}]}, "streamSettings": {"network": "ws", "wsSettings": {"path": "/hkgamesdk"}}},
+    {"protocol": "vmess", "tag": "vmess-3", "settings": {"vnext": [{"address": "YOUR_VMESS_SERVER", "port": 80, "users": [{"id": "YOUR_VMESS_UUID", "security": "auto", "alterId": 0}]}]}, "streamSettings": {"network": "ws", "wsSettings": {"path": "/hkgamesdk"}}},
+    {"protocol": "freedom", "tag": "direct", "settings": {}}
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {"type": "field", "inboundTag": ["socks-0"], "outboundTag": "vmess-0"},
+      {"type": "field", "inboundTag": ["socks-1"], "outboundTag": "vmess-1"},
+      {"type": "field", "inboundTag": ["socks-2"], "outboundTag": "vmess-2"},
+      {"type": "field", "inboundTag": ["socks-3"], "outboundTag": "vmess-3"}
+    ]
+  }
+}

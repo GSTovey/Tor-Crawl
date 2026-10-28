@@ -1,0 +1,14 @@
+# Pure Tor with obfs4 bridges — no upstream proxy
+SOCKSPort 9050
+RunAsDaemon 0
+DataDirectory /tmp/tor-data
+Log notice stdout
+Log notice file /tmp/tor-data/log
+CircuitBuildTimeout 60
+LearnCircuitBuildTimeout 0
+
+# obfs4 bridges — disguise Tor as random bytes
+ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+UseBridges 1
+Bridge obfs4 <IP:PORT> <FINGERPRINT> cert=<CERT> iat-mode=0
+Bridge obfs4 <IP:PORT> <FINGERPRINT> cert=<CERT> iat-mode=0

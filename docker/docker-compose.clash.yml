@@ -1,0 +1,89 @@
+# Clash Meta + Crawler per protocol
+# Crawler uses network_mode:"service:..." to share Clash's localhost
+
+x-crawler: &crawler
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  restart: "no"
+  cap_add: [NET_ADMIN, NET_RAW]
+  environment:
+    TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+    MAX_PCAPS: ${MAX_PCAPS:-10}
+    FETCH_NODES: "0"
+    CLASH_PORT: "7890"
+  volumes:
+    - ./configs/torrc-clash:/etc/tor/torrc:ro
+    - ../output:/app/output
+    - ./entrypoints/entrypoint_clash.sh:/entrypoint.sh:ro
+  entrypoint: ["/bin/bash", "/entrypoint.sh"]
+
+services:
+  # =========================================================================
+  # hysteria2
+  # =========================================================================
+  clash-hysteria2:
+    image: metacubex/mihomo:latest
+    container_name: clash-hysteria2
+    restart: unless-stopped
+    volumes:
+      - ./configs/clash/clash-hysteria2.yaml:/tmp/mihomo/config.yaml:ro
+    command: ["-d", "/tmp/mihomo"]
+
+  crawler-hysteria2:
+    <<: *crawler
+    container_name: crawler-hysteria2
+    network_mode: "service:clash-hysteria2"
+    depends_on:
+      - clash-hysteria2
+    environment:
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      PROTOCOL: hysteria2
+      CLASH_PORT: "7890"
+
+  # =========================================================================
+  # VMess
+  # =========================================================================
+  clash-vmess:
+    image: metacubex/mihomo:latest
+    container_name: clash-vmess
+    restart: unless-stopped
+    volumes:
+      - ./configs/clash/clash-vmess.yaml:/tmp/mihomo/config.yaml:ro
+    command: ["-d", "/tmp/mihomo"]
+
+  crawler-vmess:
+    <<: *crawler
+    container_name: crawler-vmess
+    network_mode: "service:clash-vmess"
+    depends_on:
+      - clash-vmess
+    environment:
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      PROTOCOL: vmess
+      CLASH_PORT: "7890"
+
+  # =========================================================================
+  # Shadowsocks
+  # =========================================================================
+  clash-ss:
+    image: metacubex/mihomo:latest
+    container_name: clash-ss
+    restart: unless-stopped
+    volumes:
+      - ./configs/clash/clash-ss.yaml:/tmp/mihomo/config.yaml:ro
+    command: ["-d", "/tmp/mihomo"]
+
+  crawler-ss-clash:
+    <<: *crawler
+    container_name: crawler-ss-clash
+    network_mode: "service:clash-ss"
+    depends_on:
+      - clash-ss
+    environment:
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      PROTOCOL: ss
+      CLASH_PORT: "7890"

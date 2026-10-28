@@ -1,0 +1,16 @@
+{
+  "log": {"loglevel": "warning"},
+  "inbounds": [
+    {"port": 1080, "listen": "127.0.0.1", "protocol": "socks",
+     "settings": {"auth": "noauth", "udp": false}, "tag": "socks-0"}
+  ],
+  "outbounds": [
+    {"protocol": "socks", "tag": "host-clash",
+     "settings": {"servers": [{"address": "host.docker.internal", "port": 7897}]}},
+    {"protocol": "freedom", "tag": "direct", "settings": {}}
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [{"type": "field", "inboundTag": ["socks-0"], "outboundTag": "host-clash"}]
+  }
+}

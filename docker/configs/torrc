@@ -1,0 +1,19 @@
+# Tor over Xray SOCKS5 proxy
+Socks5Proxy 127.0.0.1:1080
+
+# SOCKS5 port for the crawler to connect to
+SOCKSPort 9050
+
+# Run in foreground (not as daemon)
+RunAsDaemon 0
+
+# Data directory in tmpfs
+DataDirectory /tmp/tor-data
+
+# Log to both stdout (docker logs) and file (bootstrap monitor)
+Log notice stdout
+Log notice file /tmp/tor-data/log
+
+# Faster circuit building
+CircuitBuildTimeout 30
+LearnCircuitBuildTimeout 0

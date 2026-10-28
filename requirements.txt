@@ -1,0 +1,6 @@
+pysocks
+beautifulsoup4>=4.15.0
+yara-python
+lxml
+networkx
+pyvis

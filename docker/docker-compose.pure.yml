@@ -1,0 +1,141 @@
+# Pure proxy capture (no Tor) — per protocol
+# Xray → direct HTTP → tcpdump → pure_output/
+
+x-pure: &pure
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  restart: "no"
+  cap_add: [NET_ADMIN, NET_RAW]
+  environment:
+    TARGET_TOTAL: 10000
+    MAX_PCAPS: 10
+    FETCH_NODES: "0"
+    OUTPUT_DIR: /app/pure_output
+  volumes:
+    - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+    - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+    - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+    - ../pure_output:/app/pure_output
+  entrypoint: ["/bin/bash", "/entrypoint.sh"]
+
+services:
+  pure-vless:
+    <<: *pure
+    container_name: pure-vless
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: vless
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-vless.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+
+  pure-hysteria2:
+    <<: *pure
+    container_name: pure-hysteria2
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: hysteria2
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+
+  pure-trojan:
+    <<: *pure
+    container_name: pure-trojan
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: trojan
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-trojan.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+
+  pure-ss:
+    <<: *pure
+    container_name: pure-ss
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: ss
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-ss.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+
+  pure-vmess:
+    <<: *pure
+    container_name: pure-vmess
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: vmess
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-vmess.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+
+  nontor:
+    <<: *pure
+    container_name: torcrawl-nontor
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: NonTor
+      OUTPUT_DIR: /app/Tor_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ../Tor_output:/app/Tor_output
+
+  pure-mieru:
+    <<: *pure
+    container_name: pure-mieru
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: mieru
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+
+  pure-anytls:
+    <<: *pure
+    container_name: pure-anytls
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: anytls
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output

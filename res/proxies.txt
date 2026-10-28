@@ -1,0 +1,25 @@
+# Add proxies here (one per line). Lines starting with '#' are ignored.
+#
+# Format: host:port
+#
+# For random proxy rotation (requires -w -rpr flags):
+#   Each line is a SOCKS5 proxy that the crawler will randomly select
+#   for each request when Tor is disabled.
+#
+#   Examples:
+#   127.0.0.1:7897
+#   192.168.1.1:8080
+#   proxy.example.com:3128
+#
+# For Tor-over-Proxy (front proxy chaining):
+#   Use the --upstream-proxy (-up) command-line flag instead.
+#   This file is for random proxy pools, not for the fixed upstream
+#   proxy that Tor routes through.
+#
+#   Example with Clash/V2Ray as front proxy:
+#     python torcrawl.py -v -u https://example.com -up 127.0.0.1:7897
+#
+#   This configures Tor's torrc to use the front proxy (Clash/V2Ray)
+#   as its upstream, creating the chain:
+#     App -> Tor SOCKS5 -> Front Proxy (SS/Trojan/VMess/VLESS) -> Tor Network
+127.0.0.1:7897

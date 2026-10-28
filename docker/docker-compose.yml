@@ -1,0 +1,392 @@
+# =============================================================================
+# TorCrawl.py - Docker Compose
+# Multi-protocol Tor-over-Proxy crawlers with automatic node failover
+#
+# Each service: Xray (multi-node+balancer) -> Tor -> Crawler
+# Nodes auto-fetched from GitHub at startup (set FETCH_NODES=0 to skip)
+#
+# Usage:
+#   docker compose up torcrawl-vless -d     # Single protocol
+#   docker compose up -d                    # All 4 protocols
+#   docker compose logs -f                 # Follow all logs
+#   docker compose down                     # Stop all
+# =============================================================================
+
+# -------------------------------------------------------------------
+# Common config anchors
+# -------------------------------------------------------------------
+x-build: &build
+  context: ..
+  dockerfile: docker/Dockerfile
+
+x-env: &env
+  FETCH_NODES: ${FETCH_NODES:-0}
+  MAX_NODES: ${MAX_NODES:-15}
+  MAX_PCAPS: ${MAX_PCAPS:-10}
+  TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+  CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+  CRAWL_DEPTH: ${CRAWL_DEPTH:-1}
+  CRAWL_PAUSE: ${CRAWL_PAUSE:-2}
+
+# tcpdump needs NET_ADMIN (or NET_RAW) for packet capture
+x-capabilities: &caps
+  - NET_ADMIN
+  - NET_RAW
+
+# -------------------------------------------------------------------
+# Services
+# -------------------------------------------------------------------
+services:
+
+  torcrawl-ss:
+    build: *build
+    container_name: torcrawl-ss
+    restart: "no"
+    cap_add: *caps
+    environment:
+      <<: *env
+      PROTOCOL: ss
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-ss.json:/etc/xray/config.json:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  torcrawl-trojan:
+    build: *build
+    container_name: torcrawl-trojan
+    restart: "no"
+    cap_add: *caps
+    environment:
+      <<: *env
+      PROTOCOL: trojan
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-trojan.json:/etc/xray/config.json:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  torcrawl-vmess:
+    build: *build
+    container_name: torcrawl-vmess
+    restart: "no"
+    cap_add: *caps
+    environment:
+      <<: *env
+      PROTOCOL: vmess
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-vmess.json:/etc/xray/config.json:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  torcrawl-vless:
+    build: *build
+    container_name: torcrawl-vless
+    restart: "no"
+    cap_add: *caps
+    environment:
+      <<: *env
+      PROTOCOL: vless
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-vless.json:/etc/xray/config.json:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  torcrawl-anytls:
+    build: *build
+    container_name: torcrawl-anytls
+    restart: "no"
+    cap_add: *caps
+    environment:
+      <<: *env
+      PROTOCOL: anytls
+    volumes:
+      - ./configs/torrc-obfs4:/etc/tor/torrc:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  # ===================================================================
+  # Dual Capture (pre + post proxy traffic pairs)
+  # ===================================================================
+  pairs-mieru:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-mieru
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: mieru
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      CRAWL_DEPTH: ${CRAWL_DEPTH:-1}
+      CRAWL_PAUSE: ${CRAWL_PAUSE:-2}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-vless:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-vless
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: vless
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-vless.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-trojan:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-trojan
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: trojan
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-trojan.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-ss:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-ss
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: ss
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-ss.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-hysteria2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-hysteria2
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: hysteria2
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-hysteria2.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-vmess:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-vmess
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: vmess
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-vmess.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-anytls:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pairs-anytls
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: anytls
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+      OUTPUT_DIR: /app/output_pairs
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-anytls.json:/etc/xray/config.json:ro
+      - ./entrypoints/entrypoint_pairs.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pairs.py:/app/docker/crawl_pcap_pairs.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ../output_pairs:/app/output_pairs
+    networks:
+      - crawl-net
+
+  pairs-tor-anytls:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: torcrawl-anytls
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: anytls
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      FETCH_NODES: "0"
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/xray-anytls.json:/etc/xray/config.json:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  pure-anytls:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: pure-anytls
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      TARGET_TOTAL: 10000
+      MAX_PCAPS: 10
+      PROTOCOL: anytls
+      OUTPUT_DIR: /app/pure_output
+    volumes:
+      - ./entrypoints/entrypoint_pure.sh:/entrypoint.sh:ro
+      - ./capture/crawl_pcap_pure.py:/app/docker/crawl_pcap_pure.py:ro
+      - ./configs/top1000.txt:/app/docker/configs/top1000.txt:ro
+      - ./configs/xray-anytls.json:/etc/xray/config.json:ro
+      - ../pure_output:/app/pure_output
+    networks:
+      - crawl-net
+
+  # ===================================================================
+  # Clash Meta services — one per protocol from subscription
+  # ===================================================================
+
+  clash-hysteria2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.clash
+    container_name: clash-hysteria2
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: hysteria2
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      CRAWL_DEPTH: ${CRAWL_DEPTH:-1}
+      CRAWL_PAUSE: ${CRAWL_PAUSE:-2}
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/clash/clash-hysteria2.yaml:/etc/clash/config.yaml:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  clash-ss:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.clash
+    container_name: clash-ss
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: ss
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      CRAWL_DEPTH: ${CRAWL_DEPTH:-1}
+      CRAWL_PAUSE: ${CRAWL_PAUSE:-2}
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/clash/clash-ss.yaml:/etc/clash/config.yaml:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+  clash-vmess:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.clash
+    container_name: clash-vmess
+    restart: "no"
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      PROTOCOL: vmess
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      CRAWL_DEPTH: ${CRAWL_DEPTH:-1}
+      CRAWL_PAUSE: ${CRAWL_PAUSE:-2}
+    volumes:
+      - ./configs/torrc:/etc/tor/torrc:ro
+      - ./configs/clash/clash-vmess.yaml:/etc/clash/config.yaml:ro
+      - ../output:/app/output
+    networks:
+      - crawl-net
+
+networks:
+  crawl-net:
+    driver: bridge

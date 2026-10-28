@@ -1,0 +1,174 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "port": 1080,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": false
+      },
+      "tag": "socks-0"
+    },
+    {
+      "port": 1081,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": false
+      },
+      "tag": "socks-1"
+    },
+    {
+      "port": 1082,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": false
+      },
+      "tag": "socks-2"
+    },
+    {
+      "port": 1083,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": false
+      },
+      "tag": "socks-3"
+    },
+    {
+      "port": 1084,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": false
+      },
+      "tag": "socks-4"
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "shadowsocks",
+      "tag": "ss-0",
+      "settings": {
+        "servers": [
+          {
+            "address": "YOUR_SS_SERVER",
+            "port": 10710,
+            "method": "aes-256-gcm",
+            "password": "YOUR_SS_PASSWORD"
+          }
+        ]
+      }
+    },
+    {
+      "protocol": "shadowsocks",
+      "tag": "ss-1",
+      "settings": {
+        "servers": [
+          {
+            "address": "YOUR_SS_SERVER",
+            "port": 10700,
+            "method": "aes-256-gcm",
+            "password": "YOUR_SS_PASSWORD"
+          }
+        ]
+      }
+    },
+    {
+      "protocol": "shadowsocks",
+      "tag": "ss-2",
+      "settings": {
+        "servers": [
+          {
+            "address": "YOUR_SS_SERVER",
+            "port": 10706,
+            "method": "aes-256-gcm",
+            "password": "YOUR_SS_PASSWORD"
+          }
+        ]
+      }
+    },
+    {
+      "protocol": "shadowsocks",
+      "tag": "ss-3",
+      "settings": {
+        "servers": [
+          {
+            "address": "YOUR_SS_SERVER",
+            "port": 10701,
+            "method": "aes-256-gcm",
+            "password": "YOUR_SS_PASSWORD"
+          }
+        ]
+      }
+    },
+    {
+      "protocol": "shadowsocks",
+      "tag": "ss-4",
+      "settings": {
+        "servers": [
+          {
+            "address": "YOUR_SS_SERVER",
+            "port": 10708,
+            "method": "aes-256-gcm",
+            "password": "YOUR_SS_PASSWORD"
+          }
+        ]
+      }
+    },
+    {
+      "protocol": "freedom",
+      "tag": "direct",
+      "settings": {}
+    }
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "type": "field",
+        "inboundTag": [
+          "socks-0"
+        ],
+        "outboundTag": "ss-0"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "socks-1"
+        ],
+        "outboundTag": "ss-1"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "socks-2"
+        ],
+        "outboundTag": "ss-2"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "socks-3"
+        ],
+        "outboundTag": "ss-3"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "socks-4"
+        ],
+        "outboundTag": "ss-4"
+      }
+    ]
+  }
+}

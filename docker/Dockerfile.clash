@@ -1,0 +1,46 @@
+FROM python:3.11-slim
+
+LABEL org.opencontainers.image.title="TorCrawl Clash Docker"
+LABEL org.opencontainers.image.description="Tor-over-Clash crawler with Clash Meta + Tor"
+
+# Install Tor and utilities
+RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 \
+    || apt-get update -o Acquire::Check-Valid-Until=false \
+    ; \
+    apt-get install -y --no-install-recommends \
+    tor \
+    wget \
+    unzip \
+    ca-certificates \
+    netcat-openbsd \
+    tcpdump \
+    gzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download Clash Meta (mihomo)
+RUN MIROMO_VER=$(wget -qO- https://api.github.com/repos/MetaCubeX/mihomo/releases/latest 2>/dev/null | grep tag_name | head -1 | cut -d'"' -f4) \
+    && wget -q "https://github.com/MetaCubeX/mihomo/releases/download/${MIROMO_VER}/mihomo-linux-amd64-${MIROMO_VER}.gz" -O /tmp/mihomo.gz \
+    && gzip -d /tmp/mihomo.gz \
+    && mv /tmp/mihomo /usr/local/bin/clash-meta \
+    && chmod +x /usr/local/bin/clash-meta
+
+# Python dependencies
+RUN pip install --no-cache-dir \
+    pysocks \
+    "beautifulsoup4>=4.15.0" \
+    lxml \
+    networkx \
+    pyvis \
+    yara-python \
+    pyyaml
+
+WORKDIR /app
+COPY torcrawl.py /app/
+COPY modules/ /app/modules/
+COPY res/ /app/res/
+COPY docker/capture/crawl_pcap.py /app/docker/crawl_pcap.py
+COPY docker/configs/top1000.txt /app/docker/configs/top1000.txt
+
+COPY docker/entrypoints/entrypoint_clash.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && mkdir -p /app/output
+ENTRYPOINT ["/entrypoint.sh"]

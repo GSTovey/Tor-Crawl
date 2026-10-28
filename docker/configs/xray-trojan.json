@@ -1,0 +1,19 @@
+{
+  "log": {"loglevel": "warning"},
+  "inbounds": [
+    {"port": 1080, "listen": "127.0.0.1", "protocol": "socks",
+     "settings": {"auth": "noauth", "udp": false}, "tag": "socks-0"}
+  ],
+  "outbounds": [
+    {
+      "protocol": "trojan", "tag": "trojan-0",
+      "settings": {"servers": [{"address": "YOUR_TROJAN_SERVER", "port": 443, "password": "YOUR_TROJAN_PASSWORD"}]},
+      "streamSettings": {"network": "tcp", "security": "tls", "tlsSettings": {"serverName": "YOUR_SNI"}}
+    },
+    {"protocol": "freedom", "tag": "direct", "settings": {}}
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [{"type": "field", "inboundTag": ["socks-0"], "outboundTag": "trojan-0"}]
+  }
+}

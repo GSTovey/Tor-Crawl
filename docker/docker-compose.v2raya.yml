@@ -1,0 +1,119 @@
+# =============================================================================
+# v2rayA + Crawler — per-protocol pairs
+# =============================================================================
+
+x-crawler-common: &crawler-common
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  restart: "no"
+  cap_add: [NET_ADMIN, NET_RAW]
+  environment:
+    TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+    MAX_PCAPS: ${MAX_PCAPS:-10}
+    CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+    CRAWL_DEPTH: ${CRAWL_DEPTH:-1}
+    CRAWL_PAUSE: ${CRAWL_PAUSE:-2}
+    FETCH_NODES: "0"
+  volumes:
+    - ./configs/torrc-v2raya:/etc/tor/torrc:ro
+    - ../output:/app/output
+    - ./entrypoints/entrypoint_v2raya.sh:/entrypoint.sh:ro
+  entrypoint: ["/bin/bash", "/entrypoint.sh"]
+
+services:
+
+  # =========================================================================
+  # hysteria2
+  # =========================================================================
+  v2raya-hysteria2:
+    image: mzz2017/v2raya
+    container_name: v2raya-hysteria2
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "20171:2017"
+    environment:
+      V2RAYA_ADDRESS: "0.0.0.0:2017"
+      V2RAYA_NFTABLES_DISABLE: "true"
+    volumes:
+      - v2raya-hy2-data:/etc/v2raya
+
+  crawler-hysteria2:
+    <<: *crawler-common
+    container_name: crawler-hysteria2
+    depends_on:
+      - v2raya-hysteria2
+    environment:
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      PROTOCOL: hysteria2
+      PROXY_HOST: v2raya-hysteria2
+      PROXY_PORT: "20170"
+      FETCH_NODES: "0"
+
+  # =========================================================================
+  # VMess
+  # =========================================================================
+  v2raya-vmess:
+    image: mzz2017/v2raya
+    container_name: v2raya-vmess
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "20172:2017"
+    environment:
+      V2RAYA_ADDRESS: "0.0.0.0:2017"
+      V2RAYA_NFTABLES_DISABLE: "true"
+    volumes:
+      - v2raya-vmess-data:/etc/v2raya
+
+  crawler-vmess:
+    <<: *crawler-common
+    container_name: crawler-vmess
+    depends_on:
+      - v2raya-vmess
+    environment:
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      PROTOCOL: vmess
+      PROXY_HOST: v2raya-vmess
+      PROXY_PORT: "20170"
+      FETCH_NODES: "0"
+
+  # =========================================================================
+  # Shadowsocks
+  # =========================================================================
+  v2raya-ss:
+    image: mzz2017/v2raya
+    container_name: v2raya-ss
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "20173:2017"
+    environment:
+      V2RAYA_ADDRESS: "0.0.0.0:2017"
+      V2RAYA_NFTABLES_DISABLE: "true"
+    volumes:
+      - v2raya-ss-data:/etc/v2raya
+
+  crawler-ss-v2raya:
+    <<: *crawler-common
+    container_name: crawler-ss-v2raya
+    depends_on:
+      - v2raya-ss
+    environment:
+      TARGET_TOTAL: ${TARGET_TOTAL:-10000}
+      MAX_PCAPS: ${MAX_PCAPS:-10}
+      CRAWL_URL: ${CRAWL_URL:-https://check.torproject.org}
+      PROTOCOL: ss
+      PROXY_HOST: v2raya-ss
+      PROXY_PORT: "20170"
+      FETCH_NODES: "0"
+
+volumes:
+  v2raya-hy2-data:
+  v2raya-vmess-data:
+  v2raya-ss-data:
