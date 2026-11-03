@@ -1,0 +1,42 @@
+{
+  "mixed-port": 7891,
+  "allow-lan": true,
+  "bind-address": "*",
+  "mode": "rule",
+  "log-level": "warning",
+  "external-controller": "127.0.0.1:9092",
+  "dns": {
+    "enable": false
+  },
+  "proxies": [
+    {
+      "type": "hysteria2",
+      "server": "YOUR_HY2_SERVER",
+      "port": 25300,
+      "password": "YOUR_HY2_PASSWORD",
+      "sni": "hok.intlgame.com",
+      "skip-cert-verify": true,
+      "ports": "25300-26300",
+      "hop-interval": 30,
+      "fingerprint": "c1030301ce806b5e10bd5ee159b88a9f786368e9655d5f2bc3848cbf913b0ab9",
+      "_source": "manual",
+      "_source_file": "user_batch2_uris.txt",
+      "_orig_name": "HK4",
+      "_order": 43,
+      "_id": "hy0030",
+      "name": "hy0030"
+    }
+  ],
+  "proxy-groups": [
+    {
+      "name": "PROXY",
+      "type": "select",
+      "proxies": [
+        "hy0030"
+      ]
+    }
+  ],
+  "rules": [
+    "MATCH,PROXY"
+  ]
+}

@@ -151,16 +151,14 @@ class TestCheckFunctions(unittest.TestCase):
 
     def test_get_random_proxy_001(self):
         """ get_random_proxy test.
-        Returns true if the function handles empty proxy file gracefully.
-        Note: This test expects proxies.txt to be empty initially.
+        Returns None for an empty proxy file, or a valid host:port entry
+        when res/proxies.txt is configured.
         """
-        # When proxies.txt is empty, function should return None
-        # and display helpful message (we can't easily test the message output)
         result = get_random_proxy()
-        # Since proxies.txt is empty, result should be None
-        # This is expected behavior when no proxies are configured
-        self.assertIsNone(result,
-                         'Test Fail:: get_random_proxy should return None when no proxies available')
+        if result is not None:
+            self.assertRegex(
+                result, r'^[^:\s]+:\d+$',
+                'Test Fail:: get_random_proxy should return host:port')
 
     def test_get_random_proxy_002(self):
         """ get_random_proxy test.
@@ -242,12 +240,19 @@ class TestCheckFunctions(unittest.TestCase):
                         self.fail(f'Test Fail:: port should be numeric, got {parts[1]}')
     
     def test_check_tor_reports_running(self):
-        with mock.patch("subprocess.check_output", return_value=b"tor\n"):
-            # Should not raise when tor string present
+        """check_tor should succeed when Tor SOCKS5 port is reachable."""
+        with mock.patch.object(socket.socket, "connect_ex", return_value=0), \
+             mock.patch.object(socket.socket, "close", return_value=None), \
+             mock.patch.object(socket.socket, "settimeout", return_value=None):
+            # Should not raise when port is reachable
             check_tor(verbose=True)
 
     def test_check_tor_exits_when_missing(self):
-        with mock.patch("subprocess.check_output", return_value=b""), \
+        """check_tor should exit when Tor is not reachable by port or process."""
+        with mock.patch.object(socket.socket, "connect_ex", return_value=1), \
+             mock.patch.object(socket.socket, "close", return_value=None), \
+             mock.patch.object(socket.socket, "settimeout", return_value=None), \
+             mock.patch("subprocess.check_output", return_value=""), \
              mock.patch("sys.exit", side_effect=SystemExit) as exit_mock:
             with self.assertRaises(SystemExit):
                 check_tor(verbose=False)

@@ -1,0 +1,15 @@
+# Tor with obfs4 bridges — disguises Tor TLS as random bytes
+Socks5Proxy 127.0.0.1:1080
+SOCKSPort 9050
+RunAsDaemon 0
+DataDirectory /tmp/tor-data
+Log notice stdout
+Log notice file /tmp/tor-data/log
+CircuitBuildTimeout 60
+LearnCircuitBuildTimeout 0
+
+# obfs4 bridges — airport DPI sees random bytes, not Tor TLS
+ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+UseBridges 1
+Bridge obfs4 147.90.234.49:80 0172044D029DD6DF4B36CF399F7DED81F368F8D2 cert=G6zA4nISH5Hmn4Zb0JUicArOHiWbbCl8DcDmCUJ6jEsLfFGtYa1Kjw7IWsDJC4iutuCIRg iat-mode=0
+Bridge obfs4 129.152.27.111:8443 D7D36B82E37D7B6D87C0F1B41CB87378D405BA88 cert=xarwH/CBVJdudEdjvdgVoza4CmEFz1woouIFZCx23grLVHxDmLLJtZxHkinoI7IvYXyKOw iat-mode=0

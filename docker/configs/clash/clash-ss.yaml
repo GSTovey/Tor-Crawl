@@ -1,0 +1,50 @@
+allow-lan: true
+external-controller: 0.0.0.0:9090
+ipv6: false
+log-level: info
+mixed-port: 7890
+mode: global
+proxies:
+- cipher: chacha20-ietf-poly1305
+  name: ❗您的客户端版本太老❗
+  password: fake_node_password
+  port: '1080'
+  server: 1.1.1.1
+  type: ss
+  udp: true
+- cipher: chacha20-ietf-poly1305
+  name: ❗无法正常使用❗
+  password: fake_node_password
+  port: '1080'
+  server: 1.1.1.1
+  type: ss
+  udp: true
+- cipher: chacha20-ietf-poly1305
+  name: ❗请到文档下载新版客户端❗
+  password: fake_node_password
+  port: '1080'
+  server: 1.1.1.1
+  type: ss
+  udp: true
+- cipher: chacha20-ietf-poly1305
+  name: ❗文档 https://panel.dg5.biz/#/knowledge❗
+  password: fake_node_password
+  port: '1080'
+  server: 1.1.1.1
+  type: ss
+  udp: true
+proxy-groups:
+- interval: 30
+  name: Proxy
+  proxies:
+  - ❗您的客户端版本太老❗
+  - ❗无法正常使用❗
+  - ❗请到文档下载新版客户端❗
+  - ❗文档 https://panel.dg5.biz/#/knowledge❗
+  tolerance: 50
+  type: url-test
+  url: https://www.gstatic.com/generate_204
+rules:
+- MATCH,Proxy
+tun:
+  enable: false

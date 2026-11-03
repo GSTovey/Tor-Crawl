@@ -1,0 +1,6 @@
+SocksPort 127.0.0.1:9050
+Socks5Proxy 127.0.0.1:7890
+DataDirectory /tmp/tor-data
+Log notice file /tmp/tor-data/log
+AvoidDiskWrites 1
+ClientOnly 1

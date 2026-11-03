@@ -74,27 +74,87 @@ def folder(website, verbose):
     return output_folder
 
 
-def check_tor(verbose):
+def check_tor(verbose, proxy_host='127.0.0.1', proxy_port=9050):
     """Checks to see if TOR service is running on device.
     Will exit if (-w) with argument is provided on application startup and TOR
     service is not found to be running on the device.
 
-    :param verbose: Boolean -'verbose' logging argument.
+    Uses TCP port connectivity as primary check (cross-platform reliable).
+    Falls back to process-name detection for informational messages.
+
+    :param verbose: Boolean - 'verbose' logging argument.
+    :param proxy_host: String - Tor SOCKS5 proxy host (default: 127.0.0.1).
+    :param proxy_port: Integer - Tor SOCKS5 proxy port (default: 9050).
     :return: None
     """
-    check_for_tor = subprocess.check_output(['ps', '-e'])
+    # Primary: TCP port check (works cross-platform, most reliable)
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3.0)
+        result = sock.connect_ex((proxy_host, int(proxy_port)))
+        sock.close()
+        if result == 0:
+            if verbose:
+                print("## TOR is ready!")
+            return
+    except (OSError, ValueError):
+        pass
 
-    def find_whole_word(word):
-        return re.compile(r'\b({0})\b'.format(word),
-                          flags=re.IGNORECASE).search
+    # Secondary: process-name detection (platform-specific)
+    tor_process = False
+    if sys.platform == 'win32':
+        try:
+            output = subprocess.check_output(
+                ['tasklist'], text=True, timeout=5
+            )
+            tor_process = 'tor.exe' in output.lower()
+        except (subprocess.CalledProcessError, FileNotFoundError,
+                subprocess.TimeoutExpired):
+            pass
+    else:
+        try:
+            check_for_tor = subprocess.check_output(['ps', '-e'], timeout=5)
 
-    if find_whole_word('tor')(str(check_for_tor)):
+            def find_whole_word(word):
+                return re.compile(r'\b({0})\b'.format(word),
+                                  flags=re.IGNORECASE).search
+
+            tor_process = bool(
+                find_whole_word('tor')(str(check_for_tor))
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError,
+                subprocess.TimeoutExpired):
+            pass
+
+    if tor_process:
         if verbose:
-            print("## TOR is ready!")
+            print("## TOR process found but SOCKS5 port not responding. "
+                  "Check Tor configuration.")
     else:
         print("## TOR is NOT running!")
-        print('## Enable tor with \'service tor start\' or add -w argument')
+        print("## Enable tor with 'service tor start' or add -w argument")
         sys.exit(2)
+
+
+def check_tor_port(host='127.0.0.1', port=9050, timeout=3.0):
+    """Check if Tor SOCKS5 port is accepting connections.
+
+    This is a lightweight check that does not exit on failure — useful
+    for probing without aborting the program.
+
+    :param host: String - Tor SOCKS5 proxy host.
+    :param port: Integer - Tor SOCKS5 proxy port.
+    :param timeout: Float - Connection timeout in seconds.
+    :return: Boolean - True if port is reachable.
+    """
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((host, int(port)))
+        sock.close()
+        return result == 0
+    except (OSError, ValueError):
+        return False
 
 
 def check_ip():

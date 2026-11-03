@@ -1,0 +1,12 @@
+SocksPort 127.0.0.1:9050
+Socks5Proxy 127.0.0.1:7890
+DataDirectory /tmp/tor-data
+Log notice file /tmp/tor-data/log
+AvoidDiskWrites 1
+ClientOnly 1
+
+# User-provided obfs4 bridges (2026-10-29)
+UseBridges 1
+ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+Bridge obfs4 23.94.174.196:9130 0C346DF6B79C322F544A46101321D532F68CB66D cert=yaPJNHymV5FqzKhrXnZGV28oqf6KA5OxYE/JEI9wlmOwW0Qpa08JjfAcR9lvMNOuekijPA iat-mode=0
+Bridge obfs4 100.8.170.63:50164 FBA329BA4F5FE648456C3A28BBAA3C7EBD118E08 cert=DKA6xS0N6c4I1CFVmWc/qgAEhPBgR/dPQyXhbkjt082Ka2xmq1pwSUpCPt626uuKW2Z1TA iat-mode=0

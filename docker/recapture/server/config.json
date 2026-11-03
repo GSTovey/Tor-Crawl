@@ -1,0 +1,108 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "tag": "trojan-in",
+      "port": 8443,
+      "listen": "0.0.0.0",
+      "protocol": "trojan",
+      "settings": {
+        "clients": [
+          {
+            "password": "recapture-trojan-pass"
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "tls",
+        "tlsSettings": {
+          "alpn": [
+            "http/1.1"
+          ],
+          "certificates": [
+            {
+              "certificateFile": "/certs/cert.pem",
+              "keyFile": "/certs/key.pem"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "tag": "ss-in",
+      "port": 8388,
+      "listen": "0.0.0.0",
+      "protocol": "shadowsocks",
+      "settings": {
+        "method": "aes-256-gcm",
+        "password": "recapture-ss-pass",
+        "network": "tcp,udp"
+      }
+    },
+    {
+      "tag": "vless-in",
+      "port": 8444,
+      "listen": "0.0.0.0",
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "tcp"
+      }
+    },
+    {
+      "tag": "vmess-in",
+      "port": 8445,
+      "listen": "0.0.0.0",
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "alterId": 0
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp"
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "socks",
+      "tag": "upstream-hy2",
+      "settings": {
+        "servers": [
+          {
+            "address": "host.docker.internal",
+            "port": 17891
+          }
+        ]
+      }
+    },
+    {
+      "protocol": "freedom",
+      "tag": "direct"
+    }
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "type": "field",
+        "network": "tcp",
+        "outboundTag": "upstream-hy2"
+      }
+    ]
+  }
+}

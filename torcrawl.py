@@ -56,6 +56,7 @@ import socks  # noqa - pysocks
 
 from modules.checker import check_ip
 from modules.checker import check_tor
+from modules.checker import check_tor_port
 from modules.checker import extract_domain
 from modules.checker import folder
 from modules.checker import url_canon
@@ -64,6 +65,13 @@ from modules.crawler import Crawler
 from modules.extractor import extractor
 from modules.export import export_json, export_xml, export_database
 from modules.visualization import export_visualization
+# Proxy chain (Tor-over-Proxy)
+from modules.proxychain import (
+    FrontProxyConfig,
+    TorrcManager,
+    verify_proxy_chain,
+    check_tcp_connection,
+)
 
 __version__ = "1.35"
 
@@ -231,6 +239,53 @@ def main():
         help='IP address for SOCKS5 proxy',default='127.0.0.1'
     )
 
+    # Tor-over-Proxy: upstream (front) proxy configuration
+    parser.add_argument(
+        '-up',
+        '--upstream-proxy',
+        help='Upstream (front) proxy address in host:port format '
+             '(e.g. 127.0.0.1:7890 for Clash/V2Ray). '
+             'When set, this proxy is configured as Tor\'s upstream '
+             'via torrc so that Tor outbound connections go through it.'
+    )
+    parser.add_argument(
+        '-upt',
+        '--upstream-proxy-type',
+        choices=['socks5', 'http'],
+        default='socks5',
+        help='Type of the local proxy interface exposed by the front proxy. '
+             'socks5 (default) or http.'
+    )
+    parser.add_argument(
+        '-upp',
+        '--upstream-proxy-protocol',
+        choices=['shadowsocks', 'trojan', 'vmess', 'vless'],
+        default=None,
+        help='Remote protocol used by the front proxy to reach its server. '
+             'Informational only — the protocol itself is handled by '
+             'Clash/V2Ray, not by this tool.'
+    )
+    parser.add_argument(
+        '-tp',
+        '--torrc-path',
+        help='Path to the torrc configuration file. '
+             'Auto-detected if not provided.'
+    )
+    parser.add_argument(
+        '-ntc',
+        '--no-torrc-config',
+        action='store_true',
+        help='Skip automatic torrc modification. '
+             'Use this if you have already configured Tor\'s upstream proxy '
+             'manually, or do not want this tool to modify torrc.'
+    )
+    parser.add_argument(
+        '--verify-chain',
+        action='store_true',
+        help='Verify the full proxy chain (front proxy -> Tor -> target) '
+             'before crawling.'
+    )
+
     args = parser.parse_args()
 
     now = datetime.datetime.now().strftime("%y%m%d")
@@ -273,13 +328,111 @@ def main():
         print("## Random proxy rotation disabled. Using TOR instead.")
         random_proxy = False
 
+    # =====================================================================
+    # Tor-over-Proxy: upstream (front) proxy via torrc management
+    # =====================================================================
+    upstream_config = None
+    torrc_mgr = None
+
+    if args.upstream_proxy and not args.no_torrc_config and not args.without:
+        # Parse upstream proxy address
+        try:
+            if ':' in args.upstream_proxy:
+                up_host, up_port = args.upstream_proxy.rsplit(':', 1)
+                up_port = int(up_port)
+            else:
+                print("## ERROR: --upstream-proxy must be in host:port format "
+                      "(e.g. 127.0.0.1:7890)")
+                sys.exit(2)
+        except (ValueError, TypeError):
+            print("## ERROR: Invalid --upstream-proxy format. "
+                  "Use host:port (e.g. 127.0.0.1:7890)")
+            sys.exit(2)
+
+        upstream_config = FrontProxyConfig(
+            host=up_host,
+            port=up_port,
+            proxy_type=args.upstream_proxy_type,
+            protocol=args.upstream_proxy_protocol,
+        )
+
+        if args.verbose:
+            protocol_str = f" [{args.upstream_proxy_protocol}]" \
+                if args.upstream_proxy_protocol else ""
+            print(f"## Front proxy: {upstream_config.proxy_type}://"
+                  f"{upstream_config.address}{protocol_str}")
+
+        # Initialise TorrcManager and configure torrc
+        torrc_mgr = TorrcManager(torrc_path=args.torrc_path)
+        if torrc_mgr.torrc_path is None:
+            print("## ERROR: Could not find torrc file.")
+            print("## Specify path with --torrc-path or configure Tor "
+                  "manually and use --no-torrc-config (-ntc).")
+            sys.exit(2)
+
+        if args.verbose:
+            print(f"## Using torrc: {torrc_mgr.torrc_path}")
+
+        torrc_mgr.set_upstream_proxy(
+            proxy_type=upstream_config.proxy_type,
+            host=upstream_config.host,
+            port=upstream_config.port,
+            verbose=args.verbose,
+        )
+
+        # Reload Tor to apply the new configuration
+        if args.verbose:
+            print("## Reloading Tor to apply upstream proxy config...")
+        TorrcManager.reload_tor(verbose=args.verbose)
+        print("## If Tor does not pick up the change, restart it manually.")
+
+    elif args.upstream_proxy and args.no_torrc_config:
+        # Manual mode: user has configured torrc themselves, just parse
+        try:
+            if ':' in args.upstream_proxy:
+                up_host, up_port = args.upstream_proxy.rsplit(':', 1)
+                up_port = int(up_port)
+            else:
+                print("## ERROR: --upstream-proxy must be in host:port format "
+                      "(e.g. 127.0.0.1:7890)")
+                sys.exit(2)
+        except (ValueError, TypeError):
+            print("## ERROR: Invalid --upstream-proxy format.")
+            sys.exit(2)
+
+        upstream_config = FrontProxyConfig(
+            host=up_host,
+            port=up_port,
+            proxy_type=args.upstream_proxy_type,
+            protocol=args.upstream_proxy_protocol,
+        )
+        if args.verbose:
+            print(f"## Using existing front proxy config: "
+                  f"{upstream_config.address} (manual torrc mode)")
+
+    # =====================================================================
+    # Chain verification (optional, before crawling)
+    # =====================================================================
+    if args.verify_chain and not args.without:
+        upstream = upstream_config if upstream_config else None
+        ok = verify_proxy_chain(
+            tor_host=args.proxy,
+            tor_port=args.proxyport,
+            upstream=upstream,
+            verbose=args.verbose,
+        )
+        if not ok:
+            print("## Chain verification FAILED. "
+                  "Use -w to skip Tor, or fix the configuration.")
+            sys.exit(2)
+
     # Connect to TOR or random proxy
     if random_proxy:
         # Random proxy rotation enabled - will be handled per request
         if args.verbose:
             print("## Random proxy rotation enabled (TOR disabled)")
     elif args.without is False:
-        check_tor(args.verbose)
+        check_tor(args.verbose, args.proxy, args.proxyport)
         connect_tor(args.proxy, args.proxyport)
 
     if args.verbose:

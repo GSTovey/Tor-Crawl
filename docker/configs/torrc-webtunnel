@@ -1,0 +1,12 @@
+# Pure Tor with webtunnel bridge
+SOCKSPort 9050
+RunAsDaemon 0
+DataDirectory /tmp/tor-data
+Log notice stdout
+Log notice file /tmp/tor-data/log
+CircuitBuildTimeout 60
+LearnCircuitBuildTimeout 0
+
+ClientTransportPlugin webtunnel exec /usr/bin/webtunnel-client
+UseBridges 1
+Bridge webtunnel [2001:db8:df91:d45f:47f9:2d09:3a9a:7c22]:443 A633EAF9A7DC0E715183359C38E4DAE4515D1EF7 url=https://nothing.localenby.is/srgV09L4fn4kdkoE0vP92nvK ver=0.0.3

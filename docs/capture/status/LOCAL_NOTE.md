@@ -1,0 +1,1 @@
+docker compose -f g:\Tor_Crawl\docker\docker-compose.yml down

@@ -2,6 +2,25 @@
 output/*
 !output/.gitkeep
 
+# Local capture datasets (not published)
+/Pure_Proxy/
+/Tor_Direct/
+/Tor_over_Proxy/
+/Traffic_Pairs/
+/2026-10-28_Recapture/
+/proxy_nodes.md
+
+# Local tool/runtime state
+/.claude/
+
+# Capture pipeline runtime artifacts
+docker/recapture/bin/
+docker/recapture/pt/
+docker/recapture/runtime/
+docker/recapture/bridges_*.txt
+docker/recapture/top5000.txt
+docker/recapture/**/*.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -49,6 +49,29 @@ $ torcrawl -v -u http://www.github.com/ -c -d 2 -p 2
 
 <hr>
 
+## Fork additions
+
+This fork extends upstream TorCrawl.py for proxy-chain research and reproducible
+traffic capture:
+
+- **Tor-over-Proxy** (`-up`): route Tor's outbound connections through a local
+  front proxy (Clash/V2Ray/Xray) via `torrc`, yielding
+  `app -> Tor -> front proxy -> proxy server -> Tor network`.
+  See [docs/tor-over-proxy.md](docs/tor-over-proxy.md).
+- **Docker capture pipeline** ([docker/](docker/)): reproducible `tcpdump`
+  captures for pure-proxy, Tor-direct, Tor-over-proxy, and paired
+  pre/post traffic.
+- **Documentation archive** ([docs/](docs/)): dataset reports, capture
+  methodology, and protocol maps.
+
+Quick start for Tor-over-Proxy (Clash listening on `127.0.0.1:7897`):
+
+```shell
+$ python torcrawl.py -v -u https://example.com -up 127.0.0.1:7897 --verify-chain
+```
+
+<hr>
+
 ## Installation
 
 ### Easy Installation:
@@ -103,6 +126,13 @@ $ torcrawl -v -u http://www.github.com/ -c -d 2 -p 2
 | -DB          | --database          | Export crawl findings and link graph to SQLite database                                |
 | -vis         | --visualization     | Generate HTML visualization from SQLite database (requires -DB)                        |
 | -l           | --log               | Log file with visited URLs and their response code                                     |
+| **Proxy chain**: |                 |                                                                                        |
+| -up          | --upstream-proxy    | Front proxy `host:port` used as Tor's upstream (e.g. `127.0.0.1:7897`)                 |
+| -upt         | --upstream-proxy-type | Front proxy listener type: `socks5` (default) or `http`                              |
+| -upp         | --upstream-proxy-protocol | Informational remote protocol: `shadowsocks`, `trojan`, `vmess`, `vless`          |
+| -tp          | --torrc-path        | Path to torrc (auto-detected if omitted)                                                |
+| -ntc         | --no-torrc-config   | Do not modify torrc automatically                                                       |
+| --verify-chain |                   | Verify front proxy -> Tor -> target before crawling                                     |
 
 ## Usage & Examples
 
